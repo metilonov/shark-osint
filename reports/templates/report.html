@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'">
+<title>Shark OSINT — {{ report.username }}</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#121619;color:#e1e7eb;font:16px/1.6 system-ui,sans-serif}main{max-width:1080px;margin:auto;padding:40px 22px}h1{letter-spacing:.18em;font-size:30px}h2{margin-top:40px;font-size:21px}h3{font-size:17px;color:#76d7dc}a{color:#76d7dc;overflow-wrap:anywhere}.label,small{color:#9ba9b2}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}.card,article{background:#1b2227;border:1px solid #303c44;border-radius:9px;padding:18px}.card strong{display:block;font-size:26px}.notice{border-left:3px solid #76d7dc;padding:14px;background:#1b2227}article{margin:12px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}.tag{border:1px solid #4c616c;padding:3px 7px;border-radius:4px;font-size:12px}ul{padding-left:20px}footer{margin-top:40px;color:#9ba9b2;font-size:13px}@media print{body{background:white;color:black}article,.card{background:white;color:black;break-inside:avoid}a{color:#17515a}}
+</style><main>
+<p class="label">SHARK TEAM / PUBLIC INFORMATION RESEARCH</p><h1>SHARK OSINT</h1>
+<p>Никнейм: <strong>{{ report.username }}</strong> · Статус: {{ report.status }}<br>
+<small>{{ report.started_at }} — {{ report.finished_at }} · {{ report.duration_seconds|round(1) }} с · UTC</small></p>
+<p class="notice">{{ report.notice }}</p>
+<h2>Общая статистика</h2><div class="cards">
+{% for label,key in [('Платформ проверено','checked_platforms'),('Профилей найдено','profiles'),('Доступных страниц','accessible_pages'),('Сомнительных страниц','uncertain_pages'),('Совпадений источников','multi_source_matches'),('Проверок инструментами','checks')] %}
+<div class="card"><span class="label">{{ label }}</span><strong>{{ report.statistics[key] }}</strong></div>{% endfor %}</div>
+<p><small>Платформа — уникальный хост без www; покрытие считается по результатам Sherlock и Maigret. Доступная страница: Claimed и HTTP 2xx именно для URL профиля. Ответ 2xx от отдельного API не подтверждает доступность страницы профиля. Остальные найденные страницы считаются сомнительными. Даже доступные страницы могут быть ложными совпадениями. Импорт SpiderFoot не добавляет неизвестные отрицательные проверки в статистику.</small></p>
+<h2>Найденные платформы</h2><p>{% for group in report.profiles|groupby('platform') %}<span class="tag">{{ group.grouper }} · {{ group.list|length }}</span> {% else %}Нет найденных профилей.{% endfor %}</p>
+<h2>Ссылки на профили и публичные метаданные</h2>
+{% for p in report.profiles %}<article><h3>{{ p.platform }}</h3><a href="{{ p.url }}" rel="noopener noreferrer" target="_blank">{{ p.url }}</a>
+<p>Доступность: {{ 'HTTP 2xx' if p.accessible else 'требует проверки' }} · Уверенность совпадения: {{ p.confidence }}<br><small>{{ p.note }} Возможное ложное совпадение: да.</small></p>
+<h4>Публичные метаданные</h4><pre>{{ p.metadata|tojson(indent=2) }}</pre>
+<h4>Источники и время обнаружения</h4><ul>{% for s in p.sources %}<li>{{ s.engine }} · {{ s.platform }} · {{ s.detected_at }} · HTTP {{ s.http_status if s.http_status else 'неизвестен' }} · <a href="{{ s.url }}">источник</a>{% if s.checked_url and s.checked_url != s.url %} · <a href="{{ s.checked_url }}">проверенный endpoint</a>{% endif %}</li>{% endfor %}</ul></article>{% else %}<p>Профили не найдены. Смотрите статусы движков и ошибки: отсутствие результата не доказывает отсутствие аккаунтов.</p>{% endfor %}
+<h2>Совпадения</h2><ul>{% for p in report.profiles if p.sources|length > 1 %}<li><a href="{{ p.url }}">{{ p.platform }}</a>: {% for s in p.sources %}{{ s.engine }} {% endfor %} — гипотеза, не установление личности.</li>{% else %}<li>Нет совпадений между источниками.</li>{% endfor %}</ul>
+<h2>Источники</h2><ul>{% for engine,status in report.engines.items() %}<li>{{ engine }} — {{ status }}</li>{% endfor %}</ul>
+<h2>Ошибки проверки</h2><ul>{% for e in report.errors %}<li>{{ e.engine }} · {{ e.get('platform','') }} · {{ e.get('at','') }}: {{ e.message }}</li>{% else %}<li>Не зарегистрированы.</li>{% endfor %}</ul>
+<footer>SHARK TEAM · Локальный непубличный отчёт · Только разрешённые исследования · Не содержит закрытых данных</footer>
+</main></html>
